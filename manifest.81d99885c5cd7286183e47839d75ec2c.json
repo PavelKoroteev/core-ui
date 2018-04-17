@@ -1,0 +1,9 @@
+{
+  "name": "Comindware business application platform",
+  "short_name": "Comindware",
+  "orientation": "landscape-secondary",
+  "display": "standalone",
+  "start_url": ".",
+  "background_color": "#ffffff",
+  "theme_color": "#0575bd"
+}
