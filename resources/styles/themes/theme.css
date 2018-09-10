@@ -572,13 +572,13 @@ svg.svg-grid-icons {
 .btn-pale{
   @apply --button-pale;
 }
-.btn-strong:hover{
+.btn-strong:hover, .btn-strong:focus{
   @apply --button-strong-hover-theme;
 }
 .btn-strong:active{
   @apply --button-strong-active-theme;
 }
-.btn-pale:hover{
+.btn-pale:hover, .btn-pale:focus{
   @apply --button-pale-hover-theme;
 }
 .btn-pale:active{
