@@ -109,6 +109,7 @@ export default Marionette.View.extend({
 
         const childViewOptions = Object.assign(options.childViewOptions || {}, {
             columns: options.columns,
+            transliteratedFields: options.transliteratedFields,
             gridEventAggregator: this,
             columnClasses: this.columnClasses,
             isTree: this.options.isTree

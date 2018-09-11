@@ -1,5 +1,6 @@
 //@flow
 import CellViewFactory from '../CellViewFactory';
+import transliterator from 'utils/transliterator';
 
 const classes = {
     selected: 'selected',
@@ -116,6 +117,9 @@ export default Marionette.View.extend({
     },
 
     _renderTemplate() {
+        if (typeof this.options.transliteratedFields === 'object') {
+            this.__initializeTransliteration();
+        }
         if (this.cellViews) {
             this.cellViews.forEach(view => view.destroy());
         }
@@ -151,6 +155,14 @@ export default Marionette.View.extend({
             cellView.triggerMethod('attach');
 
             this.cellViews.push(cellView);
+        });
+    },
+
+    __initializeTransliteration() {
+        transliterator.initializeTransliteration({
+            model: this.model,
+            schema: this.options.columns,
+            transliteratedFields: this.options.transliteratedFields
         });
     },
 
