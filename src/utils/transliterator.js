@@ -14,7 +14,7 @@ export default {
 
     initializeTransliteration(options) {
         if (this.isShemaNew(options.schema)) {
-            this.setOptionsToFieldsOfNewSchema(options.schema, options.transliteratedFields, options.inputSettings);
+            options.schema = this.setOptionsToFieldsOfNewSchema(options.schema, options.transliteratedFields, options.inputSettings);
         } else {
             this.setOptionsToComputedTransliteratedFields(options.schema, options.transliteratedFields, options.inputSettings);
         }

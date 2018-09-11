@@ -3,9 +3,9 @@ import CanvasView from 'demoPage/views/CanvasView';
 export default () => {
     // 1. Get some data
     const dataArray = [];
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 15; i++) {
         dataArray.push({
-            textCell: `Text Cell ${i}`,
+            textCell: `Текст Яч. ${i}`,
             aliasCell: `Alias_Cell_${i}`,
             numberCell: i + 1,
             dateTimeCell: '2015-07-24T08:13:13.847Z',
