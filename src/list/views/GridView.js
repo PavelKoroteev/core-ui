@@ -13,6 +13,7 @@ import ToolbarView from '../../components/toolbar/ToolbarView';
 import MobileService from '../../services/MobileService';
 import LoadingBehavior from '../../views/behaviors/LoadingBehavior';
 import SearchBarView from '../../views/SearchBarView';
+import transliterator from 'utils/transliterator';
 
 /*
     Public interface:
@@ -60,6 +61,10 @@ export default Marionette.View.extend({
 
         if (options.columns === undefined) {
             throw new Error('You must provide columns definition ("columns" option)');
+        }
+
+        if (typeof options.transliteratedFields === 'object') {
+            options.columns = transliterator.setOptionsToFieldsOfNewSchema(options.columns, options.transliteratedFields);
         }
 
         options.onColumnSort && (this.onColumnSort = options.onColumnSort); //jshint ignore:line

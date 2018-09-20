@@ -13,13 +13,22 @@ export default {
     ]),
 
     initializeTransliteration(options) {
-        if (this.isShemaNew(options.schema)) {
-            options.schema = this.setOptionsToFieldsOfNewSchema(options.schema, options.transliteratedFields, options.inputSettings);
-        } else {
-            this.setOptionsToComputedTransliteratedFields(options.schema, options.transliteratedFields, options.inputSettings);
+        if (options.schema) {
+            if (this.isShemaNew(options.schema)) {
+                options.schema = this.setOptionsToFieldsOfNewSchema(options.schema, options.transliteratedFields, options.inputSettings);
+            } else {
+                this.setOptionsToComputedTransliteratedFields(options.schema, options.transliteratedFields, options.inputSettings);
+            }
         }
-        this.extendComputed(options.model, options.transliteratedFields, options.schema);
-        options.model.computedFields = new Backbone.ComputedFields(options.model);
+        if (options.model) {
+            this.extendComputed(options.model, options.transliteratedFields, options.schema);
+            options.model.computedFields = new Backbone.ComputedFields(options.model);
+        }
+        return {
+            schema: options.schema,
+            model: options.model,
+            transliteratedFields: options.transliteratedFields
+        }
     },
 
     setOptionsToComputedTransliteratedFields(schema, transliteratedFields = {name: 'alias'}, inputSettings = {
