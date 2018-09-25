@@ -41,7 +41,6 @@ const defaultOptions = {
     maxQuantitySelected: 1,
     allowEmptyValue: true,
     canDeleteItem: true,
-    valueType: 'normal',
     showSearch: true,
     class: undefined,
     externalBlurHandler: undefined,
@@ -63,7 +62,7 @@ const defaultOptions = {
  * @param {String} [options.displayAttribute='name'] The name of the attribute that contains display text or function return display text.
  * @param {Boolean} [options.canDeleteItem=true] Возможно ли удалять добавленные бабблы.
  * @param {Number} [options.maxQuantitySelected] Максимальное количество пользователей, которое можно выбрать.
- * @param {String} [options.valueType = 'normal'] type of value (id or [{ id, name }]).
+ * @param {String} [options.valueType = undefined] type of value (key for value or [{ id, name }] if undefined).
  * */
 export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
     initialize(options = {}) {
@@ -90,6 +89,7 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
                 displayAttribute: options.displayAttribute
             });
 
+        this.valueType = options.valueType || 'id';
         this.value = this.__adjustValue(this.value);
         this.__updateWithDelay = _.debounce(this.__updateFilter, this.options.textFilterDelay);
         this.listenTo(this.panelCollection, 'selected', this.__onValueSet);
@@ -202,25 +202,26 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
 
         this.__updateFakeInputModel();
 
-        if (this.options.valueType === 'id' && (!this.options.collection || this.options.collection.length === 0)) {
+        if (this.options.valueType && (!this.options.collection || this.options.collection.length === 0)) {
             this.__requestAndResetButtonViewData();
         }
     },
 
     isEmptyValue(): boolean {
         const value = this.getValue();
-        if (this.getOption('valueType') === 'id') {
+        if (this.getOption('valueType')) {
             return value == null;
         }
         return value == null || !value.length;
     },
 
     getValue() {
-        if (this.getOption('valueType') === 'id') {
+        const valueType = this.getOption('valueType');
+        if (valueType) {
             if (this.getOption('maxQuantitySelected') === 1) {
-                return Array.isArray(this.value) && this.value.length ? this.value[0].id : this.value && this.value.id;
+                return Array.isArray(this.value) && this.value.length ? this.value[0][valueType] : this.value && this.value[valueType];
             }
-            return Array.isArray(this.value) && this.value.map(value => (value && value.id !== undefined ? value.id : value));
+            return Array.isArray(this.value) && this.value.map(value => (value && value[valueType] !== undefined ? value[valueType] : value));
         }
         return this.value;
     },
@@ -294,17 +295,18 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
         if (_.isUndefined(value) || value === null) {
             return [];
         }
-        if (this.getOption('valueType') === 'id' && this.getOption('maxQuantitySelected') > 1) {
+        const valueType = this.getOption('valueType');
+        if (valueType && this.getOption('maxQuantitySelected') > 1) {
             if (Array.isArray(value)) {
                 return value.map(v => this.panelCollection.get(v) || v);
             }
-            return this.panelCollection.get(value && value.id !== undefined ? value.id : value);
+            return this.panelCollection.get(value && value[valueType] !== undefined ? value[valueType] : value);
         }
         return value;
     },
 
     __value(value: DataValue, triggerChange: boolean): void {
-        if (JSON.stringify(this.value) === JSON.stringify(value) || (_.isObject(value) && this.value.find(v => v.id === value.id))) {
+        if (JSON.stringify(this.value) === JSON.stringify(value) || (_.isObject(value) && this.value.find(v => v[this.valueType] === value[this.valueType]))) {
             this.viewModel.panel.set('value', this.value);
             return;
         }
@@ -336,7 +338,7 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
             const selectedItem = this.panelCollection.find(collectionItem => {
                 const itemId = collectionItem.get('id').toString();
                 if (Array.isArray(value)) {
-                    return value.find(v => (v && v.id ? v.id : v === itemId));
+                    return value.find(v => (v && v[this.valueType] ? v[this.valueType] : v === itemId));
                 }
                 return value === itemId;
             });
@@ -409,7 +411,7 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
 
             if (this.panelCollection.length > 0 && this.value) {
                 this.value.forEach(value => {
-                    const id = value && value.id !== undefined ? value.id : value;
+                    const id = value && value[this.valueType] !== undefined ? value[this.valueType] : value;
 
                     if (this.panelCollection.has(id)) {
                         this.panelCollection.get(id).select({ isSilent: true });
@@ -438,7 +440,7 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
         if (typeof displayAttribute === 'function') {
             return displayAttribute(value);
         }
-        return value[displayAttribute] || value.text || `#${value.id}`;
+        return value[displayAttribute] || value.text || `#${value[this.valueType]}`;
     },
 
     __onDropdownOpen(): void {
@@ -487,7 +489,7 @@ export default (formRepository.editors.Datalist = BaseLayoutEditorView.extend({
         selectedModels.remove(model);
 
         const selected = [].concat(this.getValue() || []);
-        const removingModelIndex = selected.findIndex(s => (s && s.id !== undefined ? s.id : s) === model.get('id'));
+        const removingModelIndex = selected.findIndex(s => (s && s[this.valueType] !== undefined ? s[valueType] : s) === model.get(this.valueType));
         if (removingModelIndex !== -1) {
             selected.splice(removingModelIndex, 1);
         }

@@ -353,6 +353,11 @@ export default {
                     ]
                 },
                 {
+                    id: 'UrlEditor',
+                    displayName: 'Url`s Editor',
+                    description: 'Url`s Editor',
+                },
+                {
                     id: 'AvatarEditor',
                     displayName: 'Avatar Editor',
                     description: 'Simple text editor',
