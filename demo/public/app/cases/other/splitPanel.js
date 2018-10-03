@@ -15,20 +15,27 @@ export default function() {
         className: 'demo-split-panel demo-split-panel_right'
     });
 
-    const MySplitPanel = core.views.SplitPanelView.extend({
-        options: {
-            panel1Min: 100,
-            panel2Min: 100
-        },
+    // const MySplitPanel = core.views.SplitPanelView.extend({
+    //     // options: {
+    //     //     panel1Min: 100,
+    //     //     panel2Min: 100
+    //     // },
 
-        onRender() {
-            this.showChildView('panel1Region', new Panel1View());
-            this.showChildView('panel2Region', new Panel2View());
-        }
-    });
+    //     // onRender() {
+    //     //     this.showChildView('panel1Region', new Panel1View());
+    //     //     this.showChildView('panel2Region', new Panel2View());
+    //     // }
+    // });
+
+    const MySplitPanel = core.views.SplitView;
 
     return new CanvasView({
-        view: new MySplitPanel(),
+        view: new MySplitPanel({
+            views: [
+                new Panel1View(),
+                new Panel2View()
+            ]
+        }),
 
         canvas: {
             height: '250px',

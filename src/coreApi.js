@@ -29,6 +29,7 @@ import LoadingView from './views/LoadingView';
 import LoadingBehavior from './views/behaviors/LoadingBehavior';
 import SearchBarView from './views/SearchBarView';
 import SplitPanelView from './views/SplitPanelView';
+import SplitView from './views/SplitView';
 
 import RoutingService from './services/RoutingService';
 import ToastNotifications from './services/ToastNotificationService';
@@ -113,7 +114,8 @@ const core = {
         },
         LoadingView,
         SearchBarView,
-        SplitPanelView
+        SplitPanelView,
+        SplitView
     },
     /**
      * Dropdown components of general use. It may be used in menus, dropdown lists and more complex cases like displaying some fancy about-me panel.
