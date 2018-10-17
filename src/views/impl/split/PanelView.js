@@ -20,14 +20,14 @@ export default Marionette.View.extend({
     },
 
     className() {
-        return `panel-${this.model.collection.indexOf(this.model)}`;
+        return `panel-${this.model.collection.indexOf(this.model)} split_panel`;
     },
 
     template: Handlebars.compile(template),
 
     onRender() {
         console.log(window.panel = this);
-        // this.getRegion('contentRegion').show();
+        this.getRegion('contentRegion').show(this.model.get('view'));
         this.ui.resizer.draggable({
             axis: 'x',
             drag: (event, ui) => this.__onDrag(ui)
@@ -35,7 +35,11 @@ export default Marionette.View.extend({
     },
 
     __onDrag(ui) {
-        const width = this.model.get('width');
+        let width = this.model.get('width');
+        if (typeof width !== 'number') {
+            width = this.$el.width();
+            this.model.set({ width }, { internalChange: true });
+        }
         const widthInPx = this.$el.width();
         const percentWidthInPx = widthInPx / width;
         const offsetLeft = this.$el.offset().left;

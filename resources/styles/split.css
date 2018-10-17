@@ -1,0 +1,42 @@
+.split-container{
+    display: flex;
+    flex-direction: row;
+}
+.split_panel{
+    display: flex;
+    flex-direction: row;
+}
+.split_panel:last-child > .panel_resizer {
+    display: none;
+}
+.panel_resizer{
+    cursor: e-resize;
+    height: 100%;
+    width: 1px;
+    padding-left: 5px;
+    right: 0;
+    z-index: 5;
+    border-right: 1px solid black;
+    margin-right: 5px;
+    padding-left: 5px;
+}
+
+.panel_resizer:before,
+.panel_resizer:after{
+    content: '';
+    width: 1px;
+    height: 20px;
+    position: absolute;
+    left: 1px;
+    top:50%;
+    margin-top: -10px;
+    visibility: hidden;
+}
+.panel_resizer:after{
+    left: auto;
+    right: -5px;
+}
+.panel_resizer:hover:before,
+.panel_resizer:hover:after{
+    visibility: visible;
+}

@@ -14,11 +14,11 @@ export default Marionette.CompositeView.extend({
     initialize() {
         console.log(window.split = this);
         // this.collection = new SplitViewsCollection(this.options.views);
-        this.collection = new Backbone.Collection(this.options.views);
+        this.collection = new Backbone.Collection(this.options.views.map(view => ({ view })));
     },
 
     className() {
-        return _.uniqueId('split');
+        return `${_.uniqueId('split')} split`;
     },
 
     template: Handlebars.compile(template),
@@ -39,9 +39,10 @@ export default Marionette.CompositeView.extend({
     onRender() {
         this.listenTo(this, 'add:child', this.__setDefaultWidth);
         this.listenTo(this, 'remove:child', this.__setDefaultWidth);
+        this.listenToOnce(this.collection, 'change:width', this.setDefault);
         this.listenTo(this.collection, 'change:width', this.__onWidthChange);
 
-        this.__updateWidth();
+        // this.__updateWidth();
     },
 
     __onWidthChange(model) {
@@ -81,11 +82,31 @@ export default Marionette.CompositeView.extend({
 
         this.__internalChange(ArrayService.setArrayPropertiesToCollection, array, this.collection, 'width');
 
-        this.__updateWidth();
+        // this.__updateWidth();
+    },
+
+    setDefault() {
+        this.collection.each(model => {
+            const view = model.get('view');
+            const width = view.$el.width();
+            console.log(width);
+            if (!model.has('width')) {
+                model.set({ width }, { silent: true });
+            }
+        });
     },
 
     __updateWidth() {
-        // this.collection.each(model => model.$el.css('width', `${child.model.get('width')}%`));
+        window.collection = this.collection;
+        this.collection.each(model => {
+            const view = model.get('view');
+            const width = model.get('width');
+            if (!width) {
+                console.log('!!!!!!');
+                return;
+            }
+            view.$el.css('width', `${model.get('width')}%`);
+        });
     },
 
     __internalChange(func, ...arg) {
