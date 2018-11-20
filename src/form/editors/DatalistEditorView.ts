@@ -13,13 +13,13 @@ import formRepository from '../formRepository';
 import DefaultReferenceModel from './impl/datalist/models/DefaultReferenceModel';
 import StaticController from './impl/datalist/controllers/StaticController';
 
-type DataValue = {
+interface DataValue {
     id: string,
     name?: string,
     text?: string
 };
 
-type DatalistValue = Array<DataValue>;
+// interface DatalistValue Array<DataValue>;
 
 const ReferenceCollection = Backbone.Collection.extend({
     model: DefaultReferenceModel
@@ -27,7 +27,32 @@ const ReferenceCollection = Backbone.Collection.extend({
 
 const text2AscComparatorSort = helpers.comparatorFor(comparators.stringComparator2Asc, 'text');
 
-const defaultOptions = {
+interface options {
+    displayAttribute?: string,
+    controller?: object | null,
+    showAddNewButton?: boolean,
+    showEditButton?: boolean,
+    buttonView?: object,
+    showAdditionalList?: boolean,
+    subtextProperty?: string,
+    iconProperty?: string,
+    listItemView?: object,
+    listItemViewWithText?: object,
+    showCheckboxes?: boolean,
+    textFilterDelay?: number,
+    collection?: object,
+    maxQuantitySelected?: number,
+    allowEmptyValue?: boolean,
+    canDeleteItem?: boolean,
+    valueType?: string,
+    showSearch?: boolean,
+    class?: string,
+    externalBlurHandler?: any,
+    customTemplate?: string,
+    minAvailableHeight?: number
+};
+
+const defaultOptions: options = {
     displayAttribute: 'name',
     controller: null,
     showAddNewButton: false,
@@ -40,7 +65,6 @@ const defaultOptions = {
     listItemViewWithText: ReferenceListWithSubtextItemView,
     showCheckboxes: false,
     textFilterDelay: 300,
-    collection: null,
     maxQuantitySelected: 1,
     allowEmptyValue: true,
     canDeleteItem: true,
@@ -85,7 +109,7 @@ const defaultOptions = {
  * @param {String} [options.valueType = 'normal'] type of value (id or [{ id, name }]).
  * */
 export default (formRepository.editors.Datalist = BaseEditorView.extend({
-    initialize(options = {}) {
+    initialize(options: any) {
         _.defaults(this.options, options.schema || options, defaultOptions);
         helpers.ensureOption(options, 'collection');
 
@@ -95,7 +119,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 collection = options.collection;
             } else {
                 collection = options.collection.toJSON();
-                this.listenTo(options.collection, 'reset', collect => this.resetCollection(collect));
+                this.listenTo(options.collection, 'reset', (collect: object) => this.resetCollection(collect));
             }
         }
         this.panelCollection = new VirtualCollection(new ReferenceCollection(collection), {
@@ -207,7 +231,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
     template: Handlebars.compile(template),
 
-    setValue(value): void {
+    setValue(value: any): void {
         this.value = [];
         this.__resetSelectedCollection();
         this.__value(value, false);
@@ -286,8 +310,8 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         return this.dropdownView?.button?.collectionView?.getInputView();
     },
 
-    async fetchUpdateFilter(value, forceCompareText, openOnRender) {
-        this.searchText = (value || '').trim();
+    async fetchUpdateFilter(value = '', forceCompareText?: boolean, openOnRender?: boolean) {
+        this.searchText = value.trim();
         if (this.fakeInputModel?.get('searchText') === this.searchText && !forceCompareText) {
             this.open();
             return;
@@ -297,7 +321,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         return this.__fetchUpdateFilter(this.searchText, openOnRender);
     },
 
-    async __fetchUpdateFilter(fetchedDataForSearchText, openOnRender) {
+    async __fetchUpdateFilter(fetchedDataForSearchText: string, openOnRender?: boolean) {
         this.panelCollection.pointOff();
 
         try {
@@ -324,7 +348,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         }
     },
 
-    __resetSelectedCollection(models) {
+    __resetSelectedCollection(models: Backbone.Model[]) {
         if (!this.selectedButtonCollection) {
             return;
         }
