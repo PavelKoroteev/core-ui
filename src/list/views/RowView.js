@@ -464,8 +464,15 @@ export default Marionette.View.extend({
     },
 
     __getFocusedCellIndex(e) {
-        const cells = this.el.querySelectorAll(`.${classes.cell}`);
+        let cells = this.el.querySelectorAll(`.${classes.cell}`);
+        cells = this.__filterOwnCells(cells);
         return this.__findContainsIndex(cells, e.target);
+    },
+
+    __filterOwnCells(cells) {
+        return Array.prototype.filter.call(cells,
+            cell => Array.prototype.some.call(cell.classList,
+                className => className.includes(this.options.uniqueId)));
     },
 
     __findContainsIndex(parentNodeList, child) {

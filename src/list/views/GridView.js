@@ -124,6 +124,7 @@ export default Marionette.View.extend({
             columns: options.columns,
             transliteratedFields: options.transliteratedFields,
             gridEventAggregator: this,
+            uniqueId: this.uniqueId,
             columnClasses: this.columnClasses,
             isTree: this.options.isTree
         });
