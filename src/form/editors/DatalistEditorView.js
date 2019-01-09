@@ -1,7 +1,7 @@
 // @flow
 import VirtualCollection from '../../collections/VirtualCollection';
 import dropdown from 'dropdown';
-import { helpers } from 'utils';
+import { helpers, keyCode } from 'utils';
 import template from './templates/datalistEditor.hbs';
 import BaseEditorView from './base/BaseEditorView';
 import FakeInputModel from './impl/datalist/models/FakeInputModel';
@@ -12,6 +12,7 @@ import ReferenceListWithSubtextItemView from './impl/datalist/views/ReferenceLis
 import formRepository from '../formRepository';
 import DefaultReferenceModel from './impl/datalist/models/DefaultReferenceModel';
 import StaticController from './impl/datalist/controllers/StaticController';
+import SelectableBehavior from '../../models/behaviors/SelectableBehavior';
 
 type DataValue = {
     id: string,
@@ -110,17 +111,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         this.listenTo(this.panelCollection, 'selected', this.__onValueSet);
         this.listenTo(this.panelCollection, 'deselected', this.__onValueUnset);
 
-        this.selectedButtonCollection = new Backbone.Collection(this.value, {
-            comparator: (a, b) => {
-                if (a instanceof FakeInputModel) {
-                    return 1;
-                }
-                if (b instanceof FakeInputModel) {
-                    return -1;
-                }
-                return 0;
-            }
-        });
+        this.__createSelectedButtonCollection();
 
         const reqres = Backbone.Radio.channel(_.uniqueId('datalistE'));
 
@@ -128,6 +119,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
         reqres.reply({
             'bubble:delete': this.__onBubbleDelete.bind(this),
+            'input:keydown': this.__onInputKeydown.bind(this),
             'input:backspace': this.__onBubbleDeleteLast.bind(this),
             'input:search': this.__onInputSearch.bind(this),
             'input:up': this.__onInputUp.bind(this),
@@ -172,6 +164,22 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             externalBlurHandler: this.options.externalBlurHandler,
             minAvailableHeight: this.options.minAvailableHeight
         });
+    },
+
+    __createSelectedButtonCollection() {
+        this.selectedButtonCollection = new Backbone.Collection(this.value, {
+            comparator: (a, b) => {
+                if (a instanceof FakeInputModel) {
+                    return 1;
+                }
+                if (b instanceof FakeInputModel) {
+                    return -1;
+                }
+                return 0;
+            }
+        });
+
+        _.extend(this.selectedButtonCollection, new (SelectableBehavior.SingleSelect)(this.selectedButtonCollection));
     },
 
     regions: {
@@ -631,15 +639,39 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     },
 
     updateButtonInput(string): void {
-        if (this.dropdownView.button) {
-            this.dropdownView.button.collectionView.updateInput(string);
-        }
+        this.dropdownView?.button?.collectionView?.updateInput(string);
     },
 
     __onBubbleDeleteLast(): void {
         const model = this.selectedButtonCollection.models[this.selectedButtonCollection.models.length - 2];
 
         this.__onBubbleDelete(model);
+    },
+
+    __onInputKeydown(e) {
+        const input = e.target;
+        switch (e.keyCode) {
+            case keyCode.UP:
+                this.__onInputUp();
+                break;
+            case keyCode.DOWN:
+                this.__onInputDown();
+                break;
+            case keyCode.LEFT:
+                if (input.selectionEnd === 0) {
+                    this.__selectLastBubble();
+                    this.updateButtonInput('');
+                }
+                break;
+            case keyCode.BACKSPACE:
+                if (!input.value.trim()) {
+                    this.__selectLastBubble();
+                    this.updateButtonInput('');
+                }
+                break;
+            default:
+                break;
+        }
     },
 
     __onInputUp(): void {
