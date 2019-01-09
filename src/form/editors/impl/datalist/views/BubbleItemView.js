@@ -3,6 +3,10 @@ import iconWrapRemoveBubble from '../../../iconsWraps/iconWrapRemoveBubble.html'
 import iconWrapPencil from '../../../iconsWraps/iconWrapPencil.html';
 import template from '../templates/bubbleItem.hbs';
 
+const classes = {
+    SELECT: 'bubble_focused'
+};
+
 export default Marionette.View.extend({
     initialize(options) {
         this.reqres = options.reqres;
@@ -42,6 +46,10 @@ export default Marionette.View.extend({
         mouseleave: '__onMouseleave'
     },
 
+    modelEvents: {
+        'select:one deselect:one': '__changeSelected'
+    },
+
     __delete() {
         this.reqres.request('bubble:delete', this.model);
         return false;
@@ -78,6 +86,10 @@ export default Marionette.View.extend({
             id: this.model.id,
             type: 'reference'
         };
+    },
+
+    __changeSelected(model, options) {
+        this.$el.toggleClass(classes.SELECT, model.selected);
     },
 
     __onMouseenter() {

@@ -180,6 +180,8 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         });
 
         _.extend(this.selectedButtonCollection, new (SelectableBehavior.SingleSelect)(this.selectedButtonCollection));
+
+        this.__addFakeInputModel(this.selectedButtonCollection);
     },
 
     regions: {
@@ -219,10 +221,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         this.listenTo(this.dropdownView, 'close', this.__onDropdownClose);
 
         this.showChildView('dropdownRegion', this.dropdownView);
-
-        if (this.selectedButtonCollection) {
-            this.__addFakeInputModel(this.selectedButtonCollection);
-        }
     },
 
     isEmptyValue(): boolean {
@@ -650,28 +648,72 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
     __onInputKeydown(e) {
         const input = e.target;
+        let selectedBubble;
         switch (e.keyCode) {
             case keyCode.UP:
+                e.preventDefault();
                 this.__onInputUp();
                 break;
             case keyCode.DOWN:
+                e.preventDefault();
                 this.__onInputDown();
                 break;
+            case keyCode.RIGHT:
+                this.__selectBubbleBy(1);
+                break;
             case keyCode.LEFT:
-                if (input.selectionEnd === 0) {
-                    this.__selectLastBubble();
+                selectedBubble = this.__getSelectedBubble();
+                if (selectedBubble) {
+                    this.__selectBubbleBy(-1, selectedBubble);
+                } else if (input.selectionEnd === 0) {
+                    this.__selectBubbleLast();
                     this.updateButtonInput('');
                 }
                 break;
             case keyCode.BACKSPACE:
-                if (!input.value.trim()) {
-                    this.__selectLastBubble();
+                selectedBubble = this.__getSelectedBubble();
+                if (selectedBubble) {
+                    this.__onBubbleDelete(selectedBubble);
+                } else if (!input.value.trim()) {
+                    this.__selectBubbleLast();
                     this.updateButtonInput('');
                 }
                 break;
             default:
                 break;
         }
+    },
+
+    __getSelectedBubble() {
+        return Object.values(this.selectedButtonCollection.selected)[0];
+    },
+    
+    __selectBubbleBy(delta, selectedBubble = this.__getSelectedBubble()) {
+        if (!selectedBubble) {
+            return;
+        }
+        const selectedIndex = this.selectedButtonCollection.indexOf(selectedBubble);
+        const newSelectedIndex = this.__checkMinMaxBubble(selectedIndex + delta);
+        if (newSelectedIndex === selectedIndex) {
+            return;
+        }
+        this.selectedButtonCollection.at(newSelectedIndex).select();
+    },
+
+    __checkMinMaxBubble(bubbleIndex) {
+        const minIndex = 0;
+        const maxIndex = this.selectedButtonCollection.length - 2; //fakeInputModel is last.
+
+        return Math.max(Math.min(bubbleIndex, maxIndex), minIndex);
+    },
+
+    __selectBubbleLast() {
+        if (this.selectedButtonCollection.length < 2) { //only fake, has no bubbles.
+            return;
+        }
+        this.selectedButtonCollection.select(
+            this.selectedButtonCollection.at(this.selectedButtonCollection.length - 2)
+        );
     },
 
     __onInputUp(): void {
