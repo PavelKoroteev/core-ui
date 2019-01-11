@@ -47,7 +47,7 @@ export default Marionette.View.extend({
     },
 
     modelEvents: {
-        'select:one deselect:one': '__changeSelected'
+        'selected deselected': '__changeSelected'
     },
 
     __delete() {
@@ -79,6 +79,7 @@ export default Marionette.View.extend({
         if (this.options.showEditButton && Boolean(this.model.attributes)) {
             this.el.classList.add('bubbles__i-edit-btn');
         }
+        this.__changeSelected(this.model);
     },
 
     __handleDrag(event) {
@@ -89,7 +90,7 @@ export default Marionette.View.extend({
     },
 
     __changeSelected(model, options) {
-        this.$el.toggleClass(classes.SELECT, model.selected);
+        this.$el.toggleClass(classes.SELECT, !!model.selected);
     },
 
     __onMouseenter() {

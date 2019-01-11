@@ -134,7 +134,8 @@ body {
 }
 
 .editor .bubbles .bubbles__i.bubble_focused{
-    outline: var(--focus);
+    border: var(--focus);
+    border-radius: 4px;
 }
 /*------------------ End Form Editor ------------------*/
 

@@ -120,10 +120,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         reqres.reply({
             'bubble:delete': this.__onBubbleDelete.bind(this),
             'input:keydown': this.__onInputKeydown.bind(this),
-            'input:backspace': this.__onBubbleDeleteLast.bind(this),
             'input:search': this.__onInputSearch.bind(this),
-            'input:up': this.__onInputUp.bind(this),
-            'input:down': this.__onInputDown.bind(this),
             'button:click': this.__onButtonClick.bind(this),
             'value:select': this.__onValueSelect.bind(this),
             'value:edit': this.__onValueEdit.bind(this),
@@ -176,10 +173,16 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                     return -1;
                 }
                 return 0;
-            }
+            },
+
+            model: Backbone.Model.extend({
+                initialize() {
+                    _.extend(this, new SelectableBehavior.Selectable(this));
+                }
+            })
         });
 
-        _.extend(this.selectedButtonCollection, new (SelectableBehavior.SingleSelect)(this.selectedButtonCollection));
+        _.extend(this.selectedButtonCollection, new SelectableBehavior.SingleSelect(this.selectedButtonCollection));
 
         this.__addFakeInputModel(this.selectedButtonCollection);
     },
@@ -418,22 +421,20 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     },
 
     __getValueFromPanelCollection(value) {
-        return this.panelCollection.get(value) ||
-            (_.isObject(value) && this.panelCollection.findWhere(value)) || //backbone get no item with id == null
+        return this.panelCollection.get(value)?.toJSON()  ||
+            (_.isObject(value) && this.panelCollection.findWhere(value)?.toJSON()) || //backbone get no item with id == null
             this.__tryToCreateAdjustedValue(value);
     },
 
     __tryToCreateAdjustedValue(value) {
-        return value instanceof Backbone.Model ?
-            value :
-            (_.isObject(value) ?
-                new Backbone.Model(value) :
-                new Backbone.Model({
+        return _.isObject(value) ?
+                value :
+                ({
                     id: value,
                     text: this.__isValueEqualNotSet(value) ?
                         Localizer.get('CORE.COMMON.NOTSET') :
                         undefined
-                }));
+                });
     },
 
     __isValueEqualNotSet(value) {
@@ -672,6 +673,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 break;
             case keyCode.BACKSPACE:
                 selectedBubble = this.__getSelectedBubble();
+                console.log(selectedBubble.id);
                 if (selectedBubble) {
                     this.__onBubbleDelete(selectedBubble);
                 } else if (!input.value.trim()) {
