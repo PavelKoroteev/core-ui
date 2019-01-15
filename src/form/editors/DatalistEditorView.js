@@ -392,6 +392,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
     close() {
         this.dropdownView.close();
+        this.__focusButton();
     },
 
     __adjustValue(value: any, isLoadIfNeeded = false) {
@@ -650,6 +651,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     __onInputKeydown(e) {
         const input = e.target;
         let selectedBubble;
+        let selectedBubbleIndex;
         switch (e.keyCode) {
             case keyCode.UP:
                 e.preventDefault();
@@ -660,13 +662,21 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 this.__onInputDown();
                 break;
             case keyCode.RIGHT:
-                this.__selectBubbleBy(1);
+                selectedBubble = this.__getSelectedBubble();
+                selectedBubbleIndex = this.selectedButtonCollection.indexOf(selectedBubble);
+                if (selectedBubbleIndex === this.selectedButtonCollection.length - 2) {
+                    selectedBubble.deselect();
+                    this.open();
+                    break;
+                }
+                this.__selectBubbleBy(1, selectedBubble);
                 break;
             case keyCode.LEFT:
                 selectedBubble = this.__getSelectedBubble();
                 if (selectedBubble) {
                     this.__selectBubbleBy(-1, selectedBubble);
                 } else if (input.selectionEnd === 0) {
+                    this.close();
                     this.__selectBubbleLast();
                     this.updateButtonInput('');
                 }
@@ -677,6 +687,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 if (selectedBubble) {
                     this.__onBubbleDelete(selectedBubble);
                 } else if (!input.value.trim()) {
+                    this.close();
                     this.__selectBubbleLast();
                     this.updateButtonInput('');
                 }
@@ -722,8 +733,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         const collection = this.panelCollection;
 
         if (collection.indexOf(this.panelCollection.lastPointedModel) === 0) {
-            this.dropdownView.close();
-            this.__focusButton();
+            this.close();
         } else {
             this.__sendPanelCommand('up');
         }
