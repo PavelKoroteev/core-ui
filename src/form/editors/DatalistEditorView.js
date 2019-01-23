@@ -681,10 +681,17 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                     this.updateButtonInput('');
                 }
                 break;
+            case keyCode.DELETE:
+                selectedBubble = this.__getSelectedBubble();
+                if (selectedBubble) {
+                    this.__selectBubbleBy(1, selectedBubble);
+                    this.__onBubbleDelete(selectedBubble);
+                }
+                break;
             case keyCode.BACKSPACE:
                 selectedBubble = this.__getSelectedBubble();
-                console.log(selectedBubble.id);
                 if (selectedBubble) {
+                    this.__selectBubbleBy(-1, selectedBubble);
                     this.__onBubbleDelete(selectedBubble);
                 } else if (!input.value.trim()) {
                     this.close();
