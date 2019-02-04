@@ -9,20 +9,7 @@ import PanelView from './impl/datalist/views/PanelView';
 import ReferenceListItemView from './impl/datalist/views/ReferenceListItemView';
 import ReferenceListWithSubtextItemView from './impl/datalist/views/ReferenceListWithSubtextItemView';
 import formRepository from '../formRepository';
-import DefaultReferenceModel from './impl/datalist/models/DefaultReferenceModel';
 import SelectableBehavior from '../../models/behaviors/SelectableBehavior';
-
-type DataValue = {
-    id: string,
-    name?: string,
-    text?: string
-};
-
-type DatalistValue = Array<DataValue>;
-
-const ReferenceCollection = Backbone.Collection.extend({
-    model: DefaultReferenceModel
-});
 
 const defaultOptions = {
     displayAttribute: 'name',
@@ -92,22 +79,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         helpers.ensureOption(options, 'collection');
         this.valueTypeId = this.options.valueType === 'id';
 
-        let collection = [];
-        if (options.collection) {
-            if (Array.isArray(options.collection)) {
-                collection = options.collection;
-            } else {
-                collection = options.collection.toJSON();
-                this.listenTo(options.collection, 'reset', this.resetCollection);
-            }
-        }
-
-        this.array = collection;
-        this.panelCollection = new VirtualCollection(new ReferenceCollection(collection), {
-            isSliding: true,
-            selectableBehavior: 'multi'
-        });
-
+        this.__createPanelVirtualCollection();
         this.__createSelectedButtonCollection();
 
         if (!this.options.fetchFiltered) {
@@ -173,6 +145,34 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
     __isInputShouldBeReadonly() {
         return !this.options.showSearch || this.getReadonly();
+    },
+
+    __createPanelVirtualCollection() {
+        let collection = this.options.collection;
+        let needAddListener = false;
+        if (collection instanceof Backbone.Collection) {
+            if (this.valueTypeId) {
+                // try to get text (name) from new models, if missed. need add 'missed' condition (some models has "#").
+                needAddListener = true;
+            }
+        } else {
+            collection = new Backbone.Collection(collection);
+        }
+
+        this.panelCollection = new VirtualCollection(collection, {
+            isSliding: true,
+            selectableBehavior: 'multi'
+        });
+
+        if (needAddListener) {
+            this.listenTo(collection, 'reset', this.resetCollection);
+        }
+    },
+
+    resetCollection(collection) {
+        this.__tryPointFirstRow();
+        this.__updateSelectedOnPanel();
+        this.__value(this.value);
     },
 
     __createSelectedButtonCollection() {
@@ -330,6 +330,8 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         }
 
         this.__filterPanelCollection(this.searchText);
+        this.__tryPointFirstRow();
+        this.__updateSelectedOnPanel();
         this.open(openOnRender);
     },
 
@@ -344,10 +346,13 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 throw new Error('searched was updated');
             }
 
-            this.__resetPanelVirtualCollection({
-                collection: collection.toJSON(),
-                totalCount: collection.length
-            });
+            this.__tryPointFirstRow();
+            this.__updateSelectedOnPanel();
+
+            // this.__resetPanelVirtualCollection({
+            //     collection: collection.toJSON(),
+            //     totalCount: collection.length
+            // });
 
             this.isLastFetchSuccess = true;
             this.open(openOnRender);
@@ -359,18 +364,15 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     },
 
     __filterPanelCollection(searchText) {
-        const filteredModels = this.array.filter(attributes => {
+        const filter = attributes => {
             const displayText = this.__getDisplayText(attributes);
             if (!displayText) {
                 return false;
             }
             return String(displayText).includes(searchText);
-        });
+        };
 
-        this.__resetPanelVirtualCollection({
-            collection: filteredModels,
-            totalCount: filteredModels.length
-        });
+        this.panelCollection.filter(filter);
     },
 
     __resetSelectedCollection(models) {
@@ -485,8 +487,9 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     },
 
     __getValueFromCollection(primitive) {
+        // not use get, because 1. get(null) => undefined; 2. this.options.collection may be array or collection.
         // eslint-disable-next-line eqeqeq
-        return this.array.find(attributes => attributes.id == primitive) ||
+        return this.options.collection.find(model => model.id == primitive) ||
             this.__tryToCreateAdjustedValue(primitive);
     },
 
@@ -529,15 +532,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         }
 
         return true;
-    },
-
-    resetCollection(collection) {
-        this.array = collection.toJSON();
-        this.__resetPanelVirtualCollection({
-            collection: collection.models,
-            totalCount: collection.length
-        });
-        this.__value(this.value);
     },
 
     __onValueSelect(): void {

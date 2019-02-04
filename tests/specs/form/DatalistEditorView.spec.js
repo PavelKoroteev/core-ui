@@ -1413,7 +1413,9 @@ describe('Editors', () => {
                     view.on('view:ready', () => expect(false).toBeTrue());
     
                     someCollection.reset(arrayObjects15);
-    
+
+                    // on reset virtualCollection rebuild Index, after then datalist __updateSelectedOnPanel.
+
                     expect(view.panelCollection.length).toEqual(arrayObjects15.length);
                     expect(view.dropdownView.isOpen).toBeFalsy();
                     expect(Object.keys(view.panelCollection.selected)).toBeArrayOfSize(3);
