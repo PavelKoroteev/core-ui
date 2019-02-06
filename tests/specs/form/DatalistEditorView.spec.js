@@ -185,7 +185,8 @@ describe('Editors', () => {
             expect(view.getValue()).toEqual([{ id: 1, name: 1 }]);
         });
 
-        it('view collection should has reset on dropdown open if input value changed (on initilize === empty string)', done => {
+        it('view panelVirtualcollection should filtered on dropdown open if input value changed (on initilize === empty string) and fetchFiltered = false', done => {
+            //ToDo add test for fetchFiltered = true;
             const model = new Backbone.Model({
                 value: null
             });
@@ -199,7 +200,7 @@ describe('Editors', () => {
 
             let counter = 0;
 
-            view.panelCollection.parentCollection.on('reset', () => {
+            view.panelCollection.on('filter', () => {
                 counter++;
             });
 
@@ -774,6 +775,7 @@ describe('Editors', () => {
             });
 
             it('should set value of first founded of search on Enter keyup', done => {
+                //ToDo add the same test for fetchFiltered = true
                 const model = new Backbone.Model({
                     value: 3
                 });
@@ -794,7 +796,7 @@ describe('Editors', () => {
                     startSearch(view.$el.find('input'), '2');
                 });
     
-                view.panelCollection.parentCollection.on('reset', () => {
+                view.panelCollection.on('filter', () => {
                     if (view.panelCollection.length !== 1) {
                         return;
                     }
