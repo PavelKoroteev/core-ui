@@ -86,8 +86,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             this.searchText = '';
         }
         this.debouncedFetchUpdateFilter = _.debounce(this.__fetchUpdateFilter, this.options.textFilterDelay);
-        this.listenTo(this.panelCollection, 'selected', this.__onValueSet);
-        this.listenTo(this.panelCollection, 'deselected', this.__onValueUnset);
 
         const reqres = Backbone.Radio.channel(_.uniqueId('datalistE'));
 
@@ -151,10 +149,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         let collection = this.options.collection;
         let needAddListener = false;
         if (collection instanceof Backbone.Collection) {
-            if (this.valueTypeId) {
-                // try to get text (name) from new models, if missed. need add 'missed' condition (some models has "#").
-                needAddListener = true;
-            }
+            needAddListener = true;
         } else {
             collection = new Backbone.Collection(collection);
         }
@@ -167,6 +162,9 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         if (needAddListener) {
             this.listenTo(collection, 'reset', this.resetCollection);
         }
+
+        this.listenTo(this.panelCollection, 'selected', this.__onValueSet);
+        this.listenTo(this.panelCollection, 'deselected', this.__onValueUnset);
     },
 
     resetCollection(collection) {
@@ -383,8 +381,12 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         // this.selectedButtonCollection.reset(models == null ? undefined : models);
         // select selected after reset
 
+        const selectedIds = Object.values(this.selectedButtonCollection.selected).map(selectedModel => selectedModel.id);
+    
         this.selectedButtonCollection.set(
-            models == null ? [] : models,
+            models == null ?
+                [] :
+                this.__toJSON(models),
             {
                 add: true,
                 remove: true, // remove others (like reset)
@@ -394,7 +396,21 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             }
         );
 
+        selectedIds.forEach(selectedId => this.selectedButtonCollection.get(selectedId)?.select());
+
         this.dropdownView?.button?.trigger('change:content');
+    },
+
+    __toJSON(models) {
+        return Array.isArray(models) ? 
+            models.map(model => this.__getAttributes(model)) :
+            this.__getAttributes(models);
+    },
+
+    __getAttributes(model) {
+        return model instanceof Backbone.Model ?
+            model.toJSON() :
+            model;
     },
 
     __resetPanelVirtualCollection({ collection, totalCount }) {
