@@ -109,7 +109,13 @@ export default {
             hasFocus: false,
 
             constructor(options: Object = {}) {
-                _.bindAll(this, 'onFocus', 'onBlur', 'checkChange', 'onKeyup');
+                _.bindAll(this,
+                    'onFocus',
+                    'onBlur',
+                    'checkChange',
+                    'onKeyup',
+                    'validateRequired'
+                );
 
                 //Set initial value
                 if (options.model) {
@@ -342,19 +348,22 @@ export default {
                 let error = null;
                 const value = this.getValue();
                 const formValues = this.form ? this.form.getValue() : {};
-                const validators = this.validators;
-                const getValidator = this.getValidator;
 
                 if (!internal) {
                     this.__validatedOnce = true;
                 }
 
-                if (validators) {
-                    //Run through validators until an error is found
-                    validators.every(validator => {
-                        error = getValidator(validator)(value, formValues);
-                        return !error;
-                    });
+                if (this.validators) {
+                    const requiredError = this.validateRequired();
+
+                    if (requiredError) {
+                        error = requiredError;
+                    } else {
+                        this.__getValidatorFunctions().find(validatorFn => {
+                            error = validatorFn(value, formValues);
+                            return !error;
+                        });
+                    }
                 }
 
                 if (this.isRendered() && !this.isDestroyed()) {
@@ -362,6 +371,24 @@ export default {
                 }
 
                 return error;
+            },
+
+            __getRequiredValidator(validatorFunctions = this.__getValidatorFunctions()) {
+                return this.__requiredValidator ||
+                    (this.__requiredValidator = validatorFunctions.find(validator => validator.name === 'required'));
+            },
+
+            __getValidatorFunctions() {
+                return this.__validatorFunctions ||
+                    (this.__validatorFunctions = this.validators.map(validatorName => this.getValidator(validatorName)));
+            },
+
+            validateRequired(requiredValidator = this.__getRequiredValidator()) {
+                if (!this.validators) {
+                    return;
+                }
+                this.requiredError = requiredValidator && requiredValidator(this.getValue());
+                return this.requiredError;
             },
 
             trigger(event: 'focus' | 'blur') {

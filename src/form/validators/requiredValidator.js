@@ -11,7 +11,7 @@ export default function(config) {
         config
     );
 
-    return function required(value) {
+    const required = function required(value) {
         const val = _.isObject(value) && 'value' in value ? value.value : value;
         options.value = val;
 
@@ -26,4 +26,8 @@ export default function(config) {
             return err;
         }
     };
+
+    required.name || (required.name = 'required'); //IE has no default function name.
+
+    return required;
 }

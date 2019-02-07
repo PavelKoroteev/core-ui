@@ -69,7 +69,7 @@ export default Marionette.View.extend({
             });
             this.showChildView('helpTextRegion', infoPopout);
         }
-        this.setRequired(this.schema.required);
+        this.setRequired();
         this.__updateEditorState(this.schema.readonly, this.schema.enabled);
     },
 
@@ -80,6 +80,7 @@ export default Marionette.View.extend({
      */
     validate() {
         const error = this.editor.validate();
+        this.setRequired(this.editor.requiredError);
         if (error) {
             this.setError([error]);
         } else {
@@ -159,7 +160,7 @@ export default Marionette.View.extend({
         this.editor.blur();
     },
 
-    setRequired(required) {
+    setRequired(required = this.editor.validateRequired()) {
         if (!this.__checkUiReady()) {
             return;
         }
