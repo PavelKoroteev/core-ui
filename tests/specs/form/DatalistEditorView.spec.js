@@ -75,37 +75,6 @@ describe('Editors', () => {
         return fn(...args);
     }
 
-    const DynamicController = core.form.editors.reference.controllers.BaseReferenceEditorController.extend({
-        async fetch() {
-            return new Promise(resolve => {
-                this.collection.reset(collectionData3);
-
-                this.totalCount = 3;
-                return sleep(resolve, {
-                    collection: collectionData3,
-                    totalCount: this.totalCount
-                });
-            });
-        }
-    });
-
-    const CountingDinamicController = core.form.editors.reference.controllers.BaseReferenceEditorController.extend({
-        fetchCounter: 0,
-
-        async fetch() {
-            this.fetchCounter++;
-            return new Promise(resolve => {
-                this.collection.reset(collectionData3);
-
-                this.totalCount = 3;
-                return sleep(resolve, {
-                    collection: collectionData3,
-                    totalCount: this.totalCount
-                });
-            });
-        }
-    });
-
     afterEach(() => {
         core.services.WindowService.closePopup();
     });
@@ -276,7 +245,7 @@ describe('Editors', () => {
             show(view);
 
             view.on('dropdown:open', () => {
-                expect(getInput(view)[0].getAttribute('placeholder') === '--').toBeTrue('Editor has no placeholder "--"');
+                expect(getInput(view)[0].getAttribute('placeholder') === '-').toBeTrue('Editor has no placeholder "-"');
                 done();
             });
 
@@ -362,6 +331,9 @@ describe('Editors', () => {
             view.listenToOnce(view, 'dropdown:open', () => {
                 expect(view.dropdownView.isOpen).toEqual(true, 'Must open dropdown on focus.');
                 getItemOfList(1).click();
+            });
+
+            view.on('change', () => {
                 expect(view.getValue()).toEqual([{ id: 2, name: 2 }]);
                 done();
             });
@@ -448,19 +420,19 @@ describe('Editors', () => {
         */
         it('should remove items on uncheck in panel', done => {
             const model = new Backbone.Model({
-                value: [{ id: 'task.0', name: 'Test Reference 0' }, { id: 'task.1', name: 'Test Reference 1' }]
+                value: [{ id: 0, name: 'Test Reference 0' }, { id: 1, name: 'Test Reference 1' }]
             });
 
             const view = new core.form.editors.DatalistEditor({
                 model,
-                controller: new core.form.editors.reference.controllers.DemoReferenceEditorController(),
                 key: 'value',
                 maxQuantitySelected: Infinity,
+                collection: arrayObjects15,
                 autocommit: true
             });
 
             view.on('change', () => {
-                expect(view.getValue()).toEqual([{ id: 'task.1', name: 'Test Reference 1' }]);
+                expect(view.getValue()).toBeArrayOfSize(1);
                 done();
             });
 
@@ -774,8 +746,8 @@ describe('Editors', () => {
                 show(view);
             });
 
-            it('should set value of first founded of search on Enter keyup', done => {
                 //ToDo add the same test for fetchFiltered = true
+            it('should set value of first founded of search on Enter keyup for fetchFiltered = false', done => {
                 const model = new Backbone.Model({
                     value: 3
                 });
@@ -785,6 +757,7 @@ describe('Editors', () => {
                     collection: collectionData3,
                     key: 'value',
                     autocommit: true,
+                    fetchFiltered: false,
                     valueType: 'id'
                 });
     
@@ -1102,22 +1075,36 @@ describe('Editors', () => {
                     key: 'value',
                     maxQuantitySelected: 2
                 });
+
+                let isCloseTriggered = false;
+                let counter = 0;
+
+                view.on('dropdown:open', () => {
+                    view.on('dropdown:close', () => {
+                        isCloseTriggered = true;
+                        expect(view.dropdownView.isOpen).toBeFalse();
+                        // expect(getItemOfList(0).length).toEqual(0);
+                    });
+                    getItemOfList(0).click();
+                    setTimeout(() => getItemOfList(1).click());
+                });
+
+                view.on('change', () => {
+                    counter++;
+                    if (counter < 2) {
+                        return;
+                    }
+                    setTimeout(() => {
+                        expect(isCloseTriggered).toBeTrue('view has no trigger close');
+                        expect(view.getValue()).toEqual([{ id: 1, name: 1 }, { id: 2, name: 2 }]);
+                        done();
+                    });
+                });
     
                 show(view);
     
                 const input = getInput(view);
                 startSearch(input, '');
-    
-                view.on('dropdown:open', () => {
-                    view.on('dropdown:close', () => {
-                        expect(view.getValue()).toEqual([{ id: 1, name: 1 }, { id: 2, name: 2 }]);
-                        expect(view.dropdownView.isOpen).toBeFalse();
-                        // expect(getItemOfList(0).length).toEqual(0);
-                        done();
-                    });
-                    getItemOfList(0).click();
-                    getItemOfList(1).click();
-                });
             });
 
             it('should open panel on render if options.openOnRender = true', () => {

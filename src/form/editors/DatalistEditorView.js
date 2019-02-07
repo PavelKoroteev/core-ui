@@ -47,11 +47,15 @@ const defaultOptions = {
 /* Some DOCS
     Datalist fetch [searched] data from controller on click
 
+    Datalist can be used with simplified panel.
+
     ToDo:
     1.Check the need close panel on add new Item, and then pass controller's methods as button's options.
-    2.Pass collection from options for options for panelVirtualCollection, for remove reset listener.
-    3.Fix bug: valueTypeId, many: if model already has displayText, collection has no this el, on delete some, another will be #.
-    4.Fix focus logic (make as dateTime).
+    2.Fix bug: valueTypeId, many: if model already has displayText, collection has no this el, on delete some, another will be #.
+    3.Fix simplified bugs:
+        - keyboard control (simplified has another input)
+        - button should hidden (simplidied has another input)
+    3.Fix focus logic (make as dateTime).
     4.defaultOptions:displayAttribute should be text.
     5.getDisplayText should return string always. (String(returnedValue)).
     6.if showCheckboxes and maxQuantitySelected === 1, checkbox not checked.
@@ -116,8 +120,8 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
                 datalistEnabled: this.getEnabled(),
                 datalistReadonly: this.getReadonly(),
                 emptyPlaceholder: Localizer.get('CORE.FORM.EDITORS.BUBBLESELECT.NOTSET'),
-                readonlyPlaceholder: '--',
-                readonly: this.__isInputShouldBeReadonly()
+                readonly: this.__isInputShouldBeReadonly(),
+                getIsShowPlaceholder: this.__getIsShowPlaceholder.bind(this)
             },
             panelView: PanelView,
             panelViewOptions: {
@@ -147,9 +151,9 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
     __createPanelVirtualCollection() {
         let collection = this.options.collection;
-        let needAddListener = false;
+        let collectionIsBackbone = false;
         if (collection instanceof Backbone.Collection) {
-            needAddListener = true;
+            collectionIsBackbone = true;
         } else {
             collection = new Backbone.Collection(collection);
         }
@@ -159,19 +163,30 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             selectableBehavior: 'multi'
         });
 
-        if (needAddListener) {
-            this.listenTo(collection, 'reset', this.resetCollection);
+        if (collectionIsBackbone) {
+            this.listenTo(collection, 'reset update', () => {
+                this.__tryPointFirstRow();
+                this.__updateSelectedOnPanel();
+                this.valueTypeId && this.__value(this.value); // add condition some values has #.
+            });
+        } else if (this.options.fetchFiltered) {
+            console.warn(
+                'If fetchFiltered, data must be received from collection, but you passed array as collection. Therefore fetchFiltered will be change to false'
+            );
+            this.options.fetchFiltered = false;
         }
 
-        this.listenTo(this.panelCollection, 'selected', this.__onValueSet);
-        this.listenTo(this.panelCollection, 'deselected', this.__onValueUnset);
+        if (!this.options.fetchFiltered) {
+            this.listenTo(this.panelCollection, 'filter', () => {
+                this.__tryPointFirstRow();
+                this.__updateSelectedOnPanel();
+            });
+        }
+
+        this.listenTo(this.panelCollection, 'selected', _.debounce(this.__onValueSet, 0));
+        this.listenTo(this.panelCollection, 'deselected', _.debounce(this.__onValueUnset, 0));
     },
 
-    resetCollection(collection) {
-        this.__tryPointFirstRow();
-        this.__updateSelectedOnPanel();
-        this.__value(this.value);
-    },
 
     __createSelectedButtonCollection() {
         this.selectedButtonCollection = new (Backbone.Collection.extend({
@@ -199,11 +214,11 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
 
             this.options.fetchFiltered = true;
 
-            this.options.collection = controller.collection.parentCollection;
+            this.options.collection = controller.options.collection;
 
-            this.options.createValueUrl = controller.createValueUrl;
-            this.options.edit = controller.edit;
-            this.options.addNewItem = controller.addNewItem;
+            this.options.createValueUrl = controller.createValueUrl?.bind(controller);
+            this.options.edit = controller.edit?.bind(controller);
+            this.options.addNewItem = controller.addNewItem?.bind(controller);
         }
 
         const classList = [];
@@ -242,7 +257,13 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     __updateEmpty() {
         const isEmpty = this.isEmptyValue();
         BaseEditorView.prototype.__updateEmpty.call(this, isEmpty);
-        this.dropdownView?.button.togglePlaceholder(isEmpty);
+        this.dropdownView?.button?.togglePlaceholder(
+            this.__getIsShowPlaceholder({ isEmptyValue: isEmpty })
+        );
+    },
+
+    __getIsShowPlaceholder({ isDatalistReadonly = this.getReadonly(), isEmptyValue = this.isEmptyValue() } = {}) {
+        return !isDatalistReadonly && isEmptyValue;
     },
 
     __convertToValue(estimatedObjects) {
@@ -328,8 +349,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         }
 
         this.__filterPanelCollection(this.searchText);
-        this.__tryPointFirstRow();
-        this.__updateSelectedOnPanel();
         this.open(openOnRender);
     },
 
@@ -347,11 +366,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             this.__tryPointFirstRow();
             this.__updateSelectedOnPanel();
 
-            // this.__resetPanelVirtualCollection({
-            //     collection: collection.toJSON(),
-            //     totalCount: collection.length
-            // });
-
             this.isLastFetchSuccess = true;
             this.open(openOnRender);
             this.triggerReady(); //don't move to finally, recursively.
@@ -367,7 +381,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
             if (!displayText) {
                 return false;
             }
-            return String(displayText).includes(searchText);
+            return String(displayText).toUpperCase().includes(searchText);
         };
 
         this.panelCollection.filter(filter);
@@ -411,14 +425,6 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         return model instanceof Backbone.Model ?
             model.toJSON() :
             model;
-    },
-
-    __resetPanelVirtualCollection({ collection, totalCount }) {
-        this.panelCollection.totalCount = totalCount;
-        this.panelCollection.reset(collection);
-
-        this.__updateSelectedOnPanel();
-        this.__tryPointFirstRow();
     },
 
     __updateSelectedOnPanel() {
@@ -616,10 +622,12 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
         if (value == null) {
             return '';
         }
+
+        const attributes = this.__getAttributes(value);
         if (typeof displayAttribute === 'function') {
-            return displayAttribute(value, this.model);
+            return displayAttribute(attributes, this.model);
         }
-        return value[displayAttribute] || value.text || `#${value.id}`;
+        return attributes[displayAttribute] || attributes.text || `#${attributes.id}`;
     },
 
     __onButtonFocus() {
@@ -829,7 +837,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     //start fetch
     triggerNotReady() {
         this.isReady = false;
-        this.dropdownView?.buttonView?.setLoading(true);
+        this.dropdownView?.button?.setLoading(true);
         this.trigger('view:notReady');
         return false;
     },
@@ -837,7 +845,7 @@ export default (formRepository.editors.Datalist = BaseEditorView.extend({
     //fetch complete
     triggerReady() {
         this.isReady = true;
-        this.dropdownView?.buttonView?.setLoading(false);
+        this.dropdownView?.button?.setLoading(false);
         this.trigger('view:ready');
         return true;
     },

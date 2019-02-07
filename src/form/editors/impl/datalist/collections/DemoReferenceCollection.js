@@ -11,6 +11,10 @@ const createDemoData = function () {
 };
 
 export default Backbone.Collection.extend({
+    initialize(models, options) {
+        this.__inilialModels = models || createDemoData();
+    },
+    
     model: DefaultReferenceModel,
 
     fetch({ data: { filter } }) {
@@ -22,9 +26,9 @@ export default Backbone.Collection.extend({
                 }
 
                 this.reset(
-                    createDemoData()
+                    this.__inilialModels
                         .filter(attrubutes => 
-                            attrubutes.text.includes(filter)
+                            String(attrubutes.text || attrubutes.name || attrubutes.id).includes(filter)
                         )
                 );
  

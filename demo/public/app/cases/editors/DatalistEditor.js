@@ -22,16 +22,18 @@ export default function() {
 
     const collection = new Core.form.editors.reference.collections.DemoReferenceCollection(createDemoData());
 
+    const view = new Core.form.editors.DatalistEditor({
+        model,
+        key: 'DatalistValue',
+        autocommit: true,
+        showCheckboxes: true,
+        maxQuantitySelected: 5,
+        fetchFiltered: true,
+        collection
+    });
+
     return new CanvasView({
-        view: new Core.form.editors.DatalistEditor({
-            model,
-            key: 'DatalistValue',
-            autocommit: true,
-            showCheckboxes: true,
-            maxQuantitySelected: 5,
-            fetchFiltered: true,
-            collection
-        }),
+        view,
         presentation: "[ {{#each DatalistValue}}<div>{ id: '{{this.id}}', text: '{{this.text}}' }{{#unless @last}}, {{/unless}}</div>{{/each}} <div>]</div>",
         isEditor: true
     });

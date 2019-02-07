@@ -45,6 +45,7 @@ export default TextEditorView.extend({
 
     onRender(): void {
         this.showChildView('collectionRegion', this.collectionView);
+        this.togglePlaceholder(this.options.getIsShowPlaceholder());
     },
 
     setPermissions(enabled, readonly) {
